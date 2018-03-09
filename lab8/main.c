@@ -38,28 +38,25 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "tim.h"
+#include "gpio.h"
 
 /* USER CODE BEGIN Includes */
+
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-volatile int buttonPress = 0;
-volatile int buttonFlag = 0;
-volatile int buttonPrev = 0;
-volatile int buttonCurrent = 0;
-volatile int counter = 0;
-volatile int counterFlag = 0;
-volatile int flag_1s = 0;
+volatile int count = 0;
+static TIM_HandleTypeDef s_TimerInstance = {
+		.Instance = TIM1
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_TIM1_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -94,41 +91,29 @@ int main(void)
 	SystemClock_Config();
 
 	/* USER CODE BEGIN SysInit */
-
+	HAL_TIM_Base_MspInit(&s_TimerInstance);
 	/* USER CODE END SysInit */
-
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_TIM1_Init();
 	/* USER CODE BEGIN 2 */
-	TIM1 ->DIER = 0x1;
-	TIM1 -> CR1 = 0x1;
+	HAL_TIM_Base_Start_IT(&s_TimerInstance);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
-	int digit = 0;
-	while (1)
-	{
-		if (flag_1s == 1) {
-			flag_1s = 0;
-			if(digit == 9) {
-				digit = 0;
-
-			}
-			writeDigit(digit,1);
-			digit+=1;
-		}
-
+	while (1){
 		/* USER CODE END WHILE */
+
+
 
 		/* USER CODE BEGIN 3 */
 
+
+		/* USER CODE END 3 */
+
 	}
-	/* USER CODE END 3 */
-
 }
-
 /**
  * @brief System Clock Configuration
  * @retval None
@@ -178,194 +163,112 @@ void SystemClock_Config(void)
 	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* TIM1 init function */
-static void MX_TIM1_Init(void)
-{
-
-	TIM_ClockConfigTypeDef sClockSourceConfig;
-	TIM_MasterConfigTypeDef sMasterConfig;
-
-	htim1.Instance = TIM1;
-	htim1.Init.Prescaler = 7999;
-	htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim1.Init.Period = 49;
-	htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim1.Init.RepetitionCounter = 0;
-	htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-	if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-	{
-		_Error_Handler(__FILE__, __LINE__);
-	}
-
-}
-
-/** Configure pins as 
- * Analog
- * Input
- * Output
- * EVENT_OUT
- * EXTI
- */
-static void MX_GPIO_Init(void)
-{
-
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10
-			|GPIO_PIN_11, GPIO_PIN_RESET);
-
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
-			|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_12, GPIO_PIN_RESET);
-
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
-			|GPIO_PIN_11|GPIO_PIN_3, GPIO_PIN_RESET);
-
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_RESET);
-
-	/*Configure GPIO pin : B1_Pin */
-	GPIO_InitStruct.Pin = B1_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-	/*Configure GPIO pins : PA7 PA8 PA9 PA10
-                           PA11 */
-	GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10
-			|GPIO_PIN_11;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-	/*Configure GPIO pins : PC4 PC5 PC6 PC7
-                           PC8 PC9 PC12 */
-	GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
-			|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_12;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-	/*Configure GPIO pins : PB0 PB1 PB2 PB10
-                           PB11 PB3 */
-	GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
-			|GPIO_PIN_11|GPIO_PIN_3;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-	/*Configure GPIO pin : PD2 */
-	GPIO_InitStruct.Pin = GPIO_PIN_2;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-	/*Configure GPIO pins : PB4 PB5 PB6 PB7 */
-	GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-}
-
 /* USER CODE BEGIN 4 */
-void writeDigit(int digit, int position) {
-	if(position == 1) {
-		write1(digit);
-	}
-	else if(position == 10) {
-		write10(digit);
-	}
-}
-
 void write1(int digit) {
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_All, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_All, GPIO_PIN_RESET);
 	switch(digit) {
 	case 0:
-		GPIOA->ODR = 0x0F00;
-		GPIOC->ODR = 0x0300;
+		HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0300, GPIO_PIN_SET);
 		break;
 	case 1:
-		GPIOA->ODR = 0x0600;
-		GPIOC->ODR = 0x0;
+		HAL_GPIO_WritePin(GPIOA,0x0600, GPIO_PIN_SET);
 		break;
 	case 2:
-		GPIOA->ODR = 0x0D00;
-		GPIOC->ODR = 0x0280;
+		HAL_GPIO_WritePin(GPIOA, 0x0D00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0280, GPIO_PIN_SET);
 		break;
 	case 3:
-		GPIOA->ODR = 0x0D00;
-		GPIOC->ODR = 0x0280;
+		HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0080, GPIO_PIN_SET);
 		break;
 	case 4:
-		GPIOA->ODR = 0x0F00;
-		GPIOC->ODR = 0x0080;
+		HAL_GPIO_WritePin(GPIOA, 0x0600, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0180, GPIO_PIN_SET);
 		break;
 	case 5:
-		GPIOA->ODR = 0x0B00;
-		GPIOC->ODR = 0x0180;
+		HAL_GPIO_WritePin(GPIOA, 0x0B00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0180, GPIO_PIN_SET);
 		break;
 	case 6:
-		GPIOA->ODR = 0x0B00;
-		GPIOC->ODR = 0x0380;
+		HAL_GPIO_WritePin(GPIOA, 0x0B00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0380, GPIO_PIN_SET);
 		break;
 	case 7:
-		GPIOA->ODR = 0x0E00;
-		GPIOC->ODR = 0x0;
+		HAL_GPIO_WritePin(GPIOA, 0x0E00, GPIO_PIN_SET);
 		break;
 	case 8:
-		GPIOA->ODR = 0x0F00;
-		GPIOC->ODR = 0x0380;
+		HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0380, GPIO_PIN_SET);
 		break;
 	case 9:
-		GPIOA->ODR = 0x0E00;
-		GPIOC->ODR = 0x0180;
+		HAL_GPIO_WritePin(GPIOA, 0x0E00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0180, GPIO_PIN_SET);
 		break;
 	}
 }
-void write10(int digit){
 
-}
 
-extern void TIM1_IRQHandler() {
-	TIM1 -> SR = 0x0;
-	//Increment counter once flag is set
-	counter = counter+1;
-	if(counter == 10) {
-		counter = 0;
-		flag_1s = 1;
+void write10(int digit) {
+	HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, 0x0380, GPIO_PIN_RESET);
+	switch(digit) {
+	case 0:
+		HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0300, GPIO_PIN_SET);
+		break;
+	case 1:
+		HAL_GPIO_WritePin(GPIOA,0x0600, GPIO_PIN_SET);
+		break;
+	case 2:
+		HAL_GPIO_WritePin(GPIOA, 0x0D00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0280, GPIO_PIN_SET);
+		break;
+	case 3:
+		HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0080, GPIO_PIN_SET);
+		break;
+	case 4:
+		HAL_GPIO_WritePin(GPIOA, 0x0600, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0180, GPIO_PIN_SET);
+		break;
+	case 5:
+		HAL_GPIO_WritePin(GPIOA, 0x0B00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0180, GPIO_PIN_SET);
+		break;
+	case 6:
+		HAL_GPIO_WritePin(GPIOA, 0x0B00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0380, GPIO_PIN_SET);
+		break;
+	case 7:
+		HAL_GPIO_WritePin(GPIOA, 0x0E00, GPIO_PIN_SET);
+		break;
+	case 8:
+		HAL_GPIO_WritePin(GPIOA, 0x0F00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0380, GPIO_PIN_SET);
+		break;
+	case 9:
+		HAL_GPIO_WritePin(GPIOA, 0x0E00, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, 0x0180, GPIO_PIN_SET);
+		break;
 	}
-	/*buttonPrev = buttonCurrent;
-	buttonCurrent = GPIOA->IDR;
-	buttonCurrent &= 0x1;
-	if((buttonCurrent == 0) && (buttonPrev ==1)) {
-		buttonFlag = 1;
-	} */
 }
+
+extern void TIM2_IRQHandler()
+{
+	HAL_TIM_IRQHandler(&s_TimerInstance);
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	write1(count);
+	if(count == 9) {
+		count = 0;
+	}
+	count++;
+}
+
 /* USER CODE END 4 */
 
 /**
