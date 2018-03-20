@@ -56,7 +56,7 @@ int main(void)
     TIM1->DIER |= 0x1;
     NVIC->ISER[0]=0x2000;
     NVIC->ICPR[0]=0x2000;
-
+    //DAC SETUP
     TIM1->CR1 |=0x1; /* (7) */
     RCC->APB1ENR |= 0x20000000;
     DAC->CR &= 0xFFFFFFFD;
@@ -71,7 +71,9 @@ int main(void)
 extern void TIM1_BRK_UP_TRG_COM_IRQHandler() {
     TIM1 -> SR = 0x0;
     wave = wavetab[counter];
+    //PWM
     TIM1->CCR1 = wave;
+    //DAC
     DAC->DHR12R1 = wave;
     //Increment counter once flag is set
     counter = counter+1;
